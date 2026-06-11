@@ -107,7 +107,7 @@ spec:
       targetPort: http
 
 ---
-# Ingress — exposes Grafana to the outside world (admin access only)
+# Ingress — exposes Grafana to the outside world - admin access only
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
