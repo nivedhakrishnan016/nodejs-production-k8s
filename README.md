@@ -1,94 +1,104 @@
 # Career Objective
 
-To build a career as a DevOps Engineer by creating reliable, secure, and scalable cloud infrastructure while continuously improving my skills in AWS, Kubernetes, CI/CD, and automation.
+To build my career as a DevOps Engineer by working on cloud infrastructure, Kubernetes, CI/CD, and automation while continuously improving my technical skills.
 
-# Node.js Production Deployment on AWS EKS
+# Production-Ready Node.js Deployment on AWS EKS
 
 ## Overview
 
-This project demonstrates a production-ready deployment setup for a stateless Node.js application on AWS EKS.
+This project demonstrates how a stateless Node.js application can be packaged, deployed, and managed in a production-style Kubernetes environment using AWS EKS.
 
 The solution includes:
 
 * Production-ready Docker image
 * Jenkins CI/CD pipeline
-* Helm-based Kubernetes deployment
-* Ingress configuration
+* Helm-based deployment
+* Kubernetes Ingress
 * Horizontal Pod Autoscaler (HPA)
 * Prometheus monitoring integration
 * ELK logging integration
+
+---
+
+## Repository Structure
+
+```text
+nodejs-production-api/
+├── src/
+│   └── index.js
+├── tests/
+│   └── app.test.js
+├── helm-chart/
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       ├── ingress.yaml
+│       ├── hpa.yaml
+│       ├── configmap.yaml
+│       └── servicemonitor.yaml
+├── monitoring/
+│   ├── prometheus.yaml
+│   └── grafana.yaml
+├── elk/
+│   ├── elasticsearch.yaml
+│   ├── logstash.yaml
+│   ├── filebeat.yaml
+│   └── kibana.yaml
+├── Dockerfile
+├── Jenkinsfile
+└── README.md
+```
+
+---
 
 ## Architecture Decisions
 
 ### Docker
 
-I used a multi-stage Docker build to keep the final image small and include only the files required to run the application.
+I used a multi-stage Docker build to keep the final image smaller and include only the files required to run the application.
 
-Additional improvements include:
+The Docker image also includes:
 
-* Non-root container user
+* Non-root user
 * Health check support
-* Lightweight Alpine-based image
+* Node.js Alpine base image
 
-### Helm
+### AWS ECR
 
-I chose Helm instead of raw Kubernetes manifests because it simplifies deployment management and makes configuration changes easier across environments.
+AWS ECR is used to store Docker images. It integrates well with EKS and supports private image repositories.
 
-### CI/CD
+Example image URL:
 
-The Jenkins pipeline performs the following steps:
+```text
+123456789012.dkr.ecr.ap-south-1.amazonaws.com/nodejs-production-api:latest
+```
+
+### Jenkins CI/CD
+
+The Jenkins pipeline performs the following tasks:
 
 1. Checkout source code
 2. Install dependencies
 3. Run tests
 4. Build Docker image
-5. Run security scan
-6. Push image to Amazon ECR
+5. Run Trivy security scan
+6. Push image to ECR
 7. Deploy using Helm
 
-## Assumptions
+Trivy is used to scan Docker images for critical vulnerabilities before they are pushed to ECR.
 
-* AWS EKS cluster already exists.
-* Jenkins has access to AWS credentials.
-* An Amazon ECR repository is available.
-* The application exposes a health endpoint.
-* DNS configuration for ingress is managed separately.
-* Live deployment was not performed as part of this assignment.
+### Helm
 
-## Repository Structure
+I chose Helm because it makes deployment management easier and allows configuration changes through values files without modifying manifests.
 
-```text
-nodejs-production-k8s/
-│
-├── Dockerfile
-├── Jenkinsfile
-├── README.md
-│
-├── helm/
-│   └── nodejs-api/
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-│           ├── deployment.yaml
-│           ├── service.yaml
-│           ├── ingress.yaml
-│           ├── hpa.yaml
-│           ├── servicemonitor.yaml
-│           ├── _helpers.tpl
-│           └── NOTES.txt
-│
-└── docs/
-    └── architecture-diagram.png
-```
-
-## Deployment Components
-
-The Helm chart contains the following resources:
+The Helm chart includes:
 
 * Deployment
 * Service
 * Ingress
-* Horizontal Pod Autoscaler (HPA)
+* Horizontal Pod Autoscaler
 * ServiceMonitor
 
 The application container port is configured with the required name:
@@ -97,27 +107,86 @@ The application container port is configured with the required name:
 name: api-web
 ```
 
+---
+
 ## Monitoring and Logging
 
 ### Monitoring
 
-Prometheus is used for collecting application metrics, and Grafana can be used to visualize those metrics through dashboards.
+Prometheus is used to collect application metrics.
+
+Grafana can be used to visualize those metrics through dashboards.
 
 ### Logging
 
-Application logs can be forwarded to the ELK stack using Filebeat or Fluent Bit.
+Application logs can be forwarded to the ELK stack using Filebeat.
 
-Components:
+Components used:
 
 * Elasticsearch
 * Logstash
 * Kibana
 
+---
+
+## Assumptions
+
+* An AWS EKS cluster already exists.
+* Jenkins has access to AWS credentials.
+* An Amazon ECR repository is available.
+* The application exposes a `/health` endpoint.
+* An Ingress Controller is already installed in the cluster.
+* Prometheus Operator is available for ServiceMonitor support.
+
+---
+
 ## Assignment Note
 
-As specified in the assignment, a live deployment to AWS EKS was not performed.
+As mentioned in the assignment, a live deployment to AWS EKS was not performed.
 
-The Helm chart, Jenkins pipeline, and ECR configuration are provided as production-ready templates and can be deployed in an existing AWS environment with minimal changes.
+The Jenkins pipeline, Helm chart, and ECR configuration are provided as deployment-ready templates and can be used in an existing AWS environment.
+
+---
+
+## Setup Instructions
+
+### Build Docker Image
+
+```bash
+docker build -t nodejs-production-api .
+```
+
+### Run Tests
+
+```bash
+npm test
+```
+
+### Deploy Using Helm
+
+```bash
+helm upgrade --install nodejs-api ./helm-chart
+```
+
+### Verify Deployment
+
+```bash
+kubectl get pods
+kubectl get svc
+kubectl get ingress
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Purpose                 |
+| ------ | -------- | ----------------------- |
+| GET    | /        | Application information |
+| GET    | /health  | Health check            |
+| GET    | /metrics | Prometheus metrics      |
+
+---
 
 ## Limitations
 
@@ -126,38 +195,14 @@ The Helm chart, Jenkins pipeline, and ECR configuration are provided as producti
 * ELK components were not deployed.
 * The application source code was assumed to be production-ready.
 
+---
+
 ## Future Improvements
 
-For a real production environment, I would additionally:
+If this were deployed in a real production environment, I would additionally:
 
-* Use AWS Secrets Manager for secrets management
+* Use AWS Secrets Manager for secret management
 * Implement GitOps using ArgoCD
 * Configure Alertmanager notifications
-* Add automated rollback for failed deployments
+* Add automated rollback workflows
 * Enable image signing and verification
-
-## Setup Instructions
-
-### Build Docker Image
-
-```bash
-docker build -t nodejs-api .
-```
-
-### Deploy Using Helm
-
-```bash
-helm install nodejs-api ./helm/nodejs-api
-```
-
-### Upgrade Deployment
-
-```bash
-helm upgrade nodejs-api ./helm/nodejs-api
-```
-
-### Uninstall Deployment
-
-```bash
-helm uninstall nodejs-api
-```
