@@ -1,0 +1,101 @@
+---
+# ConfigMap — Logstash pipeline
+# Receives log events from Filebeat, enriches and parses them,
+# then forwards to Elasticsearch.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipeline
+  namespace: logging
+data:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+
+    filter {
+      # Parse structured JSON logs emitted by the Node.js service
+      if [message] =~ /^\{/ {
+        json {
+          source => "message"
+        }
+      }
+
+      # Normalise the timestamp field
+      date {
+        match => ["timestamp", "ISO8601"]
+        target => "@timestamp"
+      }
+
+      # Tag all events with the application name for easy filtering in Kibana
+      mutate {
+        add_field => { "application" => "nodejs-production-api" }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts    => ["elasticsearch-service:9200"]
+        index    => "nodejs-api-logs-%{+YYYY.MM.dd}"
+      }
+    }
+
+---
+# Deployment — Logstash
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: logging
+  labels:
+    app: logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:8.13.0
+          ports:
+            - name: beats
+              containerPort: 5044
+          resources:
+            requests:
+              cpu: 300m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: pipeline
+              mountPath: /usr/share/logstash/pipeline/logstash.conf
+              subPath: logstash.conf
+      volumes:
+        - name: pipeline
+          configMap:
+            name: logstash-pipeline
+
+---
+# Service — exposes Logstash to Filebeat agents within the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash-service
+  namespace: logging
+  labels:
+    app: logstash
+spec:
+  selector:
+    app: logstash
+  ports:
+    - name: beats
+      port: 5044
+      targetPort: beats

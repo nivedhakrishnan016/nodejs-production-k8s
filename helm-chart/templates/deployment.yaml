@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  # Rolling update — guarantees zero downtime during deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Spin up 1 extra pod before terminating old ones
+      maxUnavailable: 0  # Never reduce below desired replica count
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      # Enforce non-root execution at the pod level
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+        - name: nodejs-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            # Port must be named api-web per assignment specification
+            - name: api-web
+              containerPort: 3000
+              protocol: TCP
+          # Liveness probe — Kubernetes restarts the container if this fails
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: api-web
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          # Readiness probe — traffic is only routed to the pod when this passes
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: api-web
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+          # Inject environment variables from the ConfigMap
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}-config

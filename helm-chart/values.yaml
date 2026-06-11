@@ -1,0 +1,56 @@
+# =============================================================================
+# values.yaml — Default configuration for the nodejs-production-api Helm chart
+# Override individual values at deploy time with:  --set key=value
+# =============================================================================
+
+# Number of pod replicas (overridden by HPA once it stabilises)
+replicaCount: 2
+
+image:
+  # AWS ECR image URL — format: <account-id>.dkr.ecr.<region>.amazonaws.com/<repo-name>
+  # Replace with your actual AWS account ID and region
+  repository: 123456789012.dkr.ecr.ap-south-1.amazonaws.com/nodejs-production-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80           # Port exposed inside the cluster
+  targetPort: 3000   # Port the Node.js process listens on
+
+ingress:
+  enabled: true
+  host: api.yourdomain.com
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+# Resource requests and limits for the main container
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Horizontal Pod Autoscaler settings
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  cpuUtilizationPercentage: 70
+
+# Environment variables injected via ConfigMap
+env:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+
+# Kubernetes probe timing
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5

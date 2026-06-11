@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment files — never commit secrets
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build output
+dist/
+build/
+
+# Test coverage reports
+coverage/
+
+# OS artefacts
+.DS_Store
+Thumbs.db

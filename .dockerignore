@@ -1,0 +1,24 @@
+# Dependencies — reinstalled cleanly inside the image
+node_modules
+
+# Version control
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test files — not needed at runtime
+tests
+coverage
+
+# Documentation — not needed at runtime
+README.md
+
+# CI/CD and infrastructure files — not needed inside the image
+Jenkinsfile
+helm-chart
+elk
+monitoring
+.dockerignore

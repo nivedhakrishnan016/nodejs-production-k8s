@@ -1,0 +1,7 @@
+---
+# Dedicated namespace for all ELK Stack components
+# Keeps logging infrastructure isolated from application workloads
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging

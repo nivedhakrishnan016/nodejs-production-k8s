@@ -1,0 +1,81 @@
+---
+# Deployment — Kibana
+# Provides the web UI for searching and visualising logs stored in Elasticsearch
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:8.13.0
+          ports:
+            - name: http
+              containerPort: 5601
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch-service:9200"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+# Service — exposes Kibana within the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: logging
+  labels:
+    app: kibana
+spec:
+  selector:
+    app: kibana
+  ports:
+    - name: http
+      port: 5601
+      targetPort: http
+
+---
+# Ingress — exposes Kibana externally (restrict to admin/ops access only)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kibana-ingress
+  namespace: logging
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: kibana.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kibana-service
+                port:
+                  name: http

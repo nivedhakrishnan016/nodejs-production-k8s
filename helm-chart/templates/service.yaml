@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ .Release.Name }}
+  ports:
+    - name: api-web
+      port: {{ .Values.service.port }}
+      targetPort: api-web   # References the named port defined in the Deployment
+      protocol: TCP
